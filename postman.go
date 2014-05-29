@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"time"
 
@@ -94,7 +95,7 @@ func (mc *MailClient) query(arguments ...string) ([]uint32, error) {
 }
 
 func (mc *MailClient) messagesForIds(ids []uint32) ([]string, error) {
-	messages := make([]string, len(ids))
+	messages := []string{}
 
 	if len(ids) > 0 {
 		set, _ := imap.NewSeqSet("")
@@ -142,6 +143,10 @@ func (mc *MailClient) waitForIncoming() (err error) {
 	}
 
 	_, err = imap.Wait(mc.client.IdleTerm())
+	if err != nil {
+		return fmt.Errorf("IDLE command termination failed by some reason. ", err)
+	}
+
 	return err
 }
 
@@ -215,7 +220,7 @@ type LoggerHandler struct {
 }
 
 func (hnd *LoggerHandler) Deliver(message string) error {
-	hnd.logger.Println(message)
+	hnd.logger.Printf("Message:\n%q", message)
 
 	return nil
 }
@@ -261,29 +266,27 @@ func (w *Watch) Run() {
 
 	go w.handleIncoming()
 
-	// for {
 	err := w.monitorMailbox()
 	if err != nil {
 		w.logger.Fatalln(err)
 	}
-
-	// 	time.Sleep(5 * time.Minute)
-	// }
 }
 
 func (w *Watch) handleIncoming() {
-	messages := <-w.chMsgs
+	for {
+		messages := <-w.chMsgs
 
-	for _, msg := range messages {
-		for _, handler := range w.handlers {
-			handler.Deliver(msg)
+		for _, msg := range messages {
+			for _, handler := range w.handlers {
+				handler.Deliver(msg)
+			}
 		}
 	}
 }
 
 func (w *Watch) monitorMailbox() error {
-	var err error
 	var messages []string
+	var err error
 
 	w.logger.Printf("Intiating connection to %s", w.client.addr())
 	err = w.client.connect()
@@ -306,7 +309,7 @@ func (w *Watch) monitorMailbox() error {
 	}
 
 	if len(messages) != 0 {
-		w.logger.Printf("Detected %d new (unseen) messages. Processing them now...", len(messages))
+		w.logger.Printf("Detected %d new (unseen) messages. Delivering...", len(messages))
 		w.chMsgs <- messages
 	}
 
@@ -318,7 +321,7 @@ func (w *Watch) monitorMailbox() error {
 		}
 
 		if len(messages) != 0 {
-			w.logger.Printf("Detected %d new (unseen) messages. Processing them now...", len(messages))
+			w.logger.Printf("Detected %d new (unseen) messages. Delivering...", len(messages))
 			w.chMsgs <- messages
 		}
 	}
@@ -359,6 +362,8 @@ func main() {
 	var wparams *WatchParams
 	var watch *Watch
 
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	wparams, err = parseAndCheckFlags()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -372,6 +377,8 @@ func main() {
 
 	watch = NewWatch(wparams, stdLogger)
 	watch.Run()
+
+	stdLogger.Println("Have a nice day.")
 }
 
 func parseAndCheckFlags() (*WatchParams, error) {
@@ -381,7 +388,7 @@ func parseAndCheckFlags() (*WatchParams, error) {
 
 	flag.StringVarP(&watchFlags.Host, "server", "s", "", "IMAP server hostname or ip address")
 	flag.UintVarP(&watchFlags.Port, "port", "p", 143, "IMAP server port number (defaults to 143 or 993 for ssl")
-	flag.BoolVar(&watchFlags.Ssl, "ssl", false, "Use SSL when connection (defaults to true if port is 993)")
+	flag.BoolVar(&watchFlags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
 	flag.StringVarP(&watchFlags.Username, "user", "U", "", "IMAP login username")
 	flag.StringVarP(&watchFlags.Password, "password", "P", "", "IMAP login password")
 	flag.StringVarP(&watchFlags.Mailbox, "mailbox", "m", "INBOX", "Mailbox to monitor or idle on. Defaults to: INBOX")
