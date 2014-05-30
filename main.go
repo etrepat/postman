@@ -26,17 +26,21 @@ func main() {
 	fmt.Println("Have a nice day.")
 }
 
+func appName() string {
+	return path.Base(os.Args[0])
+}
+
 func parseAndCheckFlags() (*watch.Flags, error) {
 	watchFlags := watch.NewFlags()
 
 	flag.Usage = printUsage
 
-	flag.StringVarP(&watchFlags.Host, "server", "s", "", "IMAP server hostname or ip address")
+	flag.StringVarP(&watchFlags.Host, "host", "h", "", "IMAP server hostname or ip address")
 	flag.UintVarP(&watchFlags.Port, "port", "p", 143, "IMAP server port number (defaults to 143 or 993 for ssl")
-	flag.BoolVar(&watchFlags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
 	flag.StringVarP(&watchFlags.Username, "user", "U", "", "IMAP login username")
 	flag.StringVarP(&watchFlags.Password, "password", "P", "", "IMAP login password")
 	flag.StringVarP(&watchFlags.Mailbox, "mailbox", "m", "INBOX", "Mailbox to monitor or idle on. Defaults to: INBOX")
+	flag.BoolVar(&watchFlags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
 	flag.StringVar(&watchFlags.DeliveryUrl, "delivery_url", "", "URL to post incoming raw email message data")
 	flag.BoolVar(&watchFlags.UrlEncodeOnPost, "urlencode", false, "Urlencode RAW message data before posting")
 
@@ -65,7 +69,7 @@ func usageMessage() string {
 	usageStr = "IMAP idling daemon which delivers incoming email to a webhook.\n\n"
 
 	usageStr += "Usage:\n"
-	usageStr += fmt.Sprintf("  %s [OPTIONS]\n", path.Base(os.Args[0]))
+	usageStr += fmt.Sprintf("  %s [OPTIONS]\n", appName())
 
 	usageStr += "\nOptions are:\n"
 
@@ -77,7 +81,8 @@ func usageMessage() string {
 		}
 	})
 
-	usageStr += fmt.Sprintf("  -h, --help\r\t\t\tThis help screen\n")
+	usageStr += "\n"
+	usageStr += fmt.Sprintf("       --help\r\t\t\tThis help screen\n")
 	usageStr += "\n"
 
 	return usageStr
