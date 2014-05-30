@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -16,8 +15,7 @@ func main() {
 
 	wFlags, err := parseAndCheckFlags()
 	if err != nil {
-		fmt.Println(err)
-		printUsageAndExit()
+		printErrorAndExit(err)
 	}
 
 	watch := watch.New(wFlags)
@@ -31,36 +29,40 @@ func appName() string {
 }
 
 func parseAndCheckFlags() (*watch.Flags, error) {
-	watchFlags := watch.NewFlags()
+	wflags := watch.NewFlags()
 
 	flag.Usage = printUsage
 
-	flag.StringVarP(&watchFlags.Host, "host", "h", "", "IMAP server hostname or ip address")
-	flag.UintVarP(&watchFlags.Port, "port", "p", 143, "IMAP server port number (defaults to 143 or 993 for ssl")
-	flag.StringVarP(&watchFlags.Username, "user", "U", "", "IMAP login username")
-	flag.StringVarP(&watchFlags.Password, "password", "P", "", "IMAP login password")
-	flag.StringVarP(&watchFlags.Mailbox, "mailbox", "m", "INBOX", "Mailbox to monitor or idle on. Defaults to: INBOX")
-	flag.BoolVar(&watchFlags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
-	flag.StringVar(&watchFlags.DeliveryUrl, "delivery_url", "", "URL to post incoming raw email message data")
-	flag.BoolVar(&watchFlags.UrlEncodeOnPost, "urlencode", false, "Urlencode RAW message data before posting")
+	flag.StringVarP(&wflags.Host, "host", "h", "", "IMAP server hostname or ip address")
+	flag.UintVarP(&wflags.Port, "port", "p", 143, "IMAP server port number (defaults to 143 or 993 for ssl")
+	flag.StringVarP(&wflags.Username, "user", "U", "", "IMAP login username")
+	flag.StringVarP(&wflags.Password, "password", "P", "", "IMAP login password")
+	flag.StringVarP(&wflags.Mailbox, "mailbox", "m", "INBOX", "Mailbox to monitor or idle on. Defaults to: INBOX")
+	flag.BoolVar(&wflags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
+	flag.StringVar(&wflags.DeliveryUrl, "delivery_url", "", "URL to post incoming raw email message data")
+	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "Urlencode RAW message data before posting")
 
 	flag.Parse()
 
 	if flag.NFlag() == 0 {
-		return watchFlags, errors.New("! Connection options or config file path are mandatory")
+		return wflags, fmt.Errorf("No options provided.")
 	}
 
-	if watchFlags.Host == "" && watchFlags.DeliveryUrl == "" {
-		return watchFlags, errors.New("! IMAP server host and delivery url are mandatory")
+	if wflags.Host == "" {
+		return wflags, fmt.Errorf("IMAP server host is mandatory.")
 	}
 
-	if watchFlags.Port == 143 && watchFlags.Ssl == true {
-		watchFlags.Port = 993
-	} else if watchFlags.Port == 993 && watchFlags.Ssl == false {
-		watchFlags.Ssl = true
+	if wflags.DeliveryUrl == "" {
+		return wflags, fmt.Errorf("Postback delivery url is mandatory.")
 	}
 
-	return watchFlags, nil
+	if wflags.Port == 143 && wflags.Ssl == true {
+		wflags.Port = 993
+	} else if wflags.Port == 993 && wflags.Ssl == false {
+		wflags.Ssl = true
+	}
+
+	return wflags, nil
 }
 
 func usageMessage() string {
@@ -92,7 +94,8 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, usageMessage())
 }
 
-func printUsageAndExit() {
-	printUsage()
+func printErrorAndExit(err error) {
+	fmt.Fprintf(os.Stderr, "%s: %s\n", appName(), err)
+	fmt.Fprintf(os.Stderr, "Try \"%s --help\" for more information.\n", appName())
 	os.Exit(1)
 }
