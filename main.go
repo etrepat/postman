@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 
 	"github.com/etrepat/postman/watch"
 	flag "github.com/ogier/pflag"
@@ -33,14 +34,15 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 
 	flag.Usage = printUsage
 
-	flag.StringVarP(&wflags.Host, "host", "h", "", "IMAP server hostname or ip address")
-	flag.UintVarP(&wflags.Port, "port", "p", 143, "IMAP server port number (defaults to 143 or 993 for ssl")
-	flag.StringVarP(&wflags.Username, "user", "U", "", "IMAP login username")
-	flag.StringVarP(&wflags.Password, "password", "P", "", "IMAP login password")
-	flag.StringVarP(&wflags.Mailbox, "mailbox", "m", "INBOX", "Mailbox to monitor or idle on. Defaults to: INBOX")
-	flag.BoolVar(&wflags.Ssl, "ssl", false, "Enforce a SSL connection (defaults to true if port is 993)")
-	flag.StringVar(&wflags.DeliveryUrl, "delivery_url", "", "URL to post incoming raw email message data")
-	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "Urlencode RAW message data before posting")
+	flag.StringVarP(&wflags.Host, "host", "h", "", "IMAP server hostname or ip address.")
+	flag.UintVarP(&wflags.Port, "port", "p", 143, "IMAP server port number. Defaults to 143 or 993 for ssl.")
+	flag.BoolVar(&wflags.Ssl, "ssl", false, "Enforce a SSL connection. Defaults to true if port is 993.")
+	flag.StringVarP(&wflags.Username, "user", "U", "", "IMAP login username.")
+	flag.StringVarP(&wflags.Password, "password", "P", "", "IMAP login password.")
+	flag.StringVarP(&wflags.Mailbox, "mailbox", "b", "INBOX", "Mailbox to monitor/idle on. Defaults to: \"INBOX\".")
+	flag.StringVarP(&wflags.Mode, "mode", "m", "", fmt.Sprintf("Mode of delivery. Valid delivery modes are: %s.", strings.Join(watch.ValidDeliveryModes(), ", ")))
+	flag.StringVar(&wflags.DeliveryUrl, "delivery_url", "", "(postback only) URL to post incoming raw email message data.")
+	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "(postback only) Urlencode RAW message data before posting.")
 
 	flag.Parse()
 
@@ -52,8 +54,14 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 		return wflags, fmt.Errorf("IMAP server host is mandatory.")
 	}
 
-	if wflags.DeliveryUrl == "" {
-		return wflags, fmt.Errorf("Postback delivery url is mandatory.")
+	if wflags.Mode == "" {
+		return wflags, fmt.Errorf("Delivery mode must be specified. Should be one of: %s.", strings.Join(watch.ValidDeliveryModes(), ", "))
+	} else {
+		if !watch.DeliveryModeValid(wflags.Mode) {
+			return wflags, fmt.Errorf("Unknown delivery mode: \"%s\". Must be one of: %s.", wflags.Mode, strings.Join(watch.ValidDeliveryModes(), ", "))
+		} else if wflags.Mode == "postback" && wflags.DeliveryUrl == "" {
+			return wflags, fmt.Errorf("On postback mode, delivery url must be specified.")
+		}
 	}
 
 	if wflags.Port == 143 && wflags.Ssl == true {

@@ -8,8 +8,16 @@ import (
 	"github.com/etrepat/postman/imap"
 )
 
+const (
+	DELIVERY_MODE_POSTBACK = "postback"
+	DELIVERY_MODE_LOGGER   = "logger"
+)
+
 var (
-	DefaultLogger = log.New(os.Stdout, "[watch] ", log.LstdFlags)
+	DefaultLogger  = log.New(os.Stdout, "[watch] ", log.LstdFlags)
+	DELIVERY_MODES = map[string]bool{
+		DELIVERY_MODE_POSTBACK: true,
+		DELIVERY_MODE_LOGGER:   true}
 )
 
 type Flags struct {
@@ -19,6 +27,7 @@ type Flags struct {
 	Username        string
 	Password        string
 	Mailbox         string
+	Mode            string
 	DeliveryUrl     string
 	UrlEncodeOnPost bool
 }
@@ -90,7 +99,7 @@ func (w *Watch) monitorMailbox() error {
 	var messages []string
 	var err error
 
-	w.logger.Printf("Intiating connection to %s", w.client.Addr())
+	w.logger.Printf("Initiating connection to %s", w.client.Addr())
 	err = w.client.Connect()
 	if err != nil {
 		return err
@@ -146,8 +155,30 @@ func New(flags *Flags, handlers ...handler.MessageHandler) *Watch {
 			watch.AddHandler(hnd)
 		}
 	} else {
-		watch.AddHandler(handler.New(handler.LOGGER_HANDLER, DefaultLogger))
+		switch flags.Mode {
+		case DELIVERY_MODE_POSTBACK:
+			watch.AddHandler(handler.New(handler.POSTBACK_HANDLER, flags.DeliveryUrl, flags.UrlEncodeOnPost))
+
+		case DELIVERY_MODE_LOGGER:
+			watch.AddHandler(handler.New(handler.LOGGER_HANDLER, DefaultLogger))
+		}
 	}
 
 	return watch
+}
+
+func DeliveryModeValid(mode string) bool {
+	return DELIVERY_MODES[mode]
+}
+
+func ValidDeliveryModes() []string {
+	modes := make([]string, len(DELIVERY_MODES))
+	i := 0
+
+	for k, _ := range DELIVERY_MODES {
+		modes[i] = k
+		i++
+	}
+
+	return modes
 }
