@@ -72,6 +72,11 @@ func (w *Watch) Start() {
 
 	go w.handleIncoming()
 
+	w.logger.Printf("Handling incoming messages with:")
+	for i := 0; i < len(w.handlers); i++ {
+		w.logger.Printf("> %s", w.handlers[i].Describe())
+	}
+
 	err := w.monitorMailbox()
 	if err != nil {
 		w.logger.Fatalln(err)
@@ -83,12 +88,19 @@ func (w *Watch) Stop() {
 }
 
 func (w *Watch) handleIncoming() {
+	var err error
+
 	for {
 		messages := <-w.chMsgs
 
 		for _, msg := range messages {
 			for _, handler := range w.handlers {
-				handler.Deliver(msg)
+				err = handler.Deliver(msg)
+				if err != nil {
+					w.logger.Println(err)
+				} else {
+					w.logger.Println("Delivered successfully")
+				}
 			}
 		}
 	}
