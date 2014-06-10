@@ -11,12 +11,16 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
+const (
+	VERSION = "0.1.0"
+)
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	wFlags, err := parseAndCheckFlags()
 	if err != nil {
-		printErrorAndExit(err)
+		printMessageAndExit(err.Error())
 	}
 
 	watch := watch.New(wFlags)
@@ -31,6 +35,7 @@ func appName() string {
 
 func parseAndCheckFlags() (*watch.Flags, error) {
 	wflags := watch.NewFlags()
+	printVersion := false
 
 	flag.Usage = printUsage
 
@@ -43,24 +48,29 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 	flag.StringVarP(&wflags.Mode, "mode", "m", "", fmt.Sprintf("Mode of delivery. Valid delivery modes are: %s.", strings.Join(watch.ValidDeliveryModes(), ", ")))
 	flag.StringVar(&wflags.DeliveryUrl, "delivery_url", "", "(postback only) URL to post incoming raw email message data.")
 	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "(postback only) Urlencode RAW message data before posting.")
+	flag.BoolVarP(&printVersion, "version", "v", false, "Outputs the version information.")
 
 	flag.Parse()
 
 	if flag.NFlag() == 0 {
-		return wflags, fmt.Errorf("No options provided.")
+		return wflags, newFlagsError("No options provided.")
+	}
+
+	if printVersion {
+		return wflags, versionError()
 	}
 
 	if wflags.Host == "" {
-		return wflags, fmt.Errorf("IMAP server host is mandatory.")
+		return wflags, newFlagsError("IMAP server host is mandatory.")
 	}
 
 	if wflags.Mode == "" {
-		return wflags, fmt.Errorf("Delivery mode must be specified. Should be one of: %s.", strings.Join(watch.ValidDeliveryModes(), ", "))
+		return wflags, newFlagsError("Delivery mode must be specified. Should be one of: %s.", strings.Join(watch.ValidDeliveryModes(), ", "))
 	} else {
 		if !watch.DeliveryModeValid(wflags.Mode) {
-			return wflags, fmt.Errorf("Unknown delivery mode: \"%s\". Must be one of: %s.", wflags.Mode, strings.Join(watch.ValidDeliveryModes(), ", "))
+			return wflags, newFlagsError("Unknown delivery mode: \"%s\". Must be one of: %s.", wflags.Mode, strings.Join(watch.ValidDeliveryModes(), ", "))
 		} else if wflags.Mode == "postback" && wflags.DeliveryUrl == "" {
-			return wflags, fmt.Errorf("On postback mode, delivery url must be specified.")
+			return wflags, newFlagsError("On postback mode, delivery url must be specified.")
 		}
 	}
 
@@ -98,12 +108,31 @@ func usageMessage() string {
 	return usageStr
 }
 
-func printUsage() {
-	fmt.Fprintf(os.Stderr, usageMessage())
+func printMessage(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func printErrorAndExit(err error) {
-	fmt.Fprintf(os.Stderr, "%s: %s\n", appName(), err)
-	fmt.Fprintf(os.Stderr, "Try \"%s --help\" for more information.\n", appName())
+func printMessageAndExit(format string, args ...interface{}) {
+	printMessage(format, args...)
 	os.Exit(1)
+}
+
+func printUsage() {
+	printMessage(usageMessage())
+}
+
+func newError(format string, args ...interface{}) error {
+	return fmt.Errorf(format, args...)
+}
+
+func newFlagsError(format string, args ...interface{}) error {
+	errorMessage := fmt.Sprintf(format, args...)
+
+	return newError("%s: %s\nTry \"%s --help\" for more information.\n", appName(), errorMessage, appName())
+}
+
+func versionError() error {
+	format := "%s/%s %s/%s %s\n"
+
+	return newError(format, appName(), VERSION, runtime.GOOS, runtime.GOARCH, runtime.Version())
 }
