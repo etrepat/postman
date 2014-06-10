@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 	"runtime"
 	"strings"
 
+	"github.com/etrepat/postman/version"
 	"github.com/etrepat/postman/watch"
 	flag "github.com/ogier/pflag"
 )
@@ -27,10 +27,6 @@ func main() {
 	watch.Run()
 
 	fmt.Println("Have a nice day.")
-}
-
-func appName() string {
-	return path.Base(os.Args[0])
 }
 
 func parseAndCheckFlags() (*watch.Flags, error) {
@@ -57,7 +53,7 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 	}
 
 	if printVersion {
-		return wflags, versionError()
+		return wflags, newError("%s\n", version.Version())
 	}
 
 	if wflags.Host == "" {
@@ -89,7 +85,7 @@ func usageMessage() string {
 	usageStr = "IMAP idling daemon which delivers incoming email to a webhook.\n\n"
 
 	usageStr += "Usage:\n"
-	usageStr += fmt.Sprintf("  %s [OPTIONS]\n", appName())
+	usageStr += fmt.Sprintf("  %s [OPTIONS]\n", version.App())
 
 	usageStr += "\nOptions are:\n"
 
@@ -128,11 +124,5 @@ func newError(format string, args ...interface{}) error {
 func newFlagsError(format string, args ...interface{}) error {
 	errorMessage := fmt.Sprintf(format, args...)
 
-	return newError("%s: %s\nTry \"%s --help\" for more information.\n", appName(), errorMessage, appName())
-}
-
-func versionError() error {
-	format := "%s/%s %s/%s %s\n"
-
-	return newError(format, appName(), VERSION, runtime.GOOS, runtime.GOARCH, runtime.Version())
+	return newError("%s: %s\nTry \"%s --help\" for more information.\n", version.App(), errorMessage, version.App())
 }
