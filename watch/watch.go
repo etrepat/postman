@@ -6,6 +6,7 @@ import (
 
 	"github.com/etrepat/postman/handler"
 	"github.com/etrepat/postman/imap"
+	"github.com/etrepat/postman/version"
 )
 
 const (
@@ -65,14 +66,8 @@ func (w *Watch) Handlers() []handler.MessageHandler {
 }
 
 func (w *Watch) Start() {
-	w.Run()
-}
+	w.logger.Println("Starting ", version.VersionShort())
 
-func (w *Watch) Stop() {
-	// TODO: Unimplemented for now
-}
-
-func (w *Watch) Run() {
 	w.chMsgs = make(chan []string)
 
 	go w.handleIncoming()
@@ -81,6 +76,10 @@ func (w *Watch) Run() {
 	if err != nil {
 		w.logger.Fatalln(err)
 	}
+}
+
+func (w *Watch) Stop() {
+	// TODO: Unimplemented for now
 }
 
 func (w *Watch) handleIncoming() {
