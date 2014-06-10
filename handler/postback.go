@@ -23,6 +23,20 @@ func (hnd *PostBackHandler) Deliver(message string) error {
 	return nil
 }
 
+func (hnd *PostBackHandler) Describe() string {
+	var redactedUrl string
+
+	uri, err := url.Parse(hnd.Url)
+
+	if err != nil {
+		redactedUrl = hnd.Url
+	} else {
+		redactedUrl = uri.Scheme + "://" + uri.Host + uri.Path
+	}
+
+	return fmt.Sprintf("PostbackHandler (url=%s, encode=%t)", redactedUrl, hnd.EncodeOnPost)
+}
+
 func (hnd *PostBackHandler) getPostBody(data string) string {
 	if hnd.EncodeOnPost == true {
 		return url.QueryEscape(data)

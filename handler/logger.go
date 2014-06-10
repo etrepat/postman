@@ -12,6 +12,10 @@ func (hnd *LoggerHandler) Deliver(message string) error {
 	return nil
 }
 
+func (hnd *LoggerHandler) Describe() string {
+	return "Logger Handler"
+}
+
 func NewLoggerHandler(out *log.Logger) *LoggerHandler {
 	return &LoggerHandler{logger: out}
 }

@@ -9,6 +9,7 @@ const (
 
 type MessageHandler interface {
 	Deliver(message string) error
+	Describe() string
 }
 
 func New(t uint, args ...interface{}) (hnd MessageHandler) {
