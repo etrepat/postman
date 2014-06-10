@@ -38,7 +38,7 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 	flag.StringVarP(&wflags.Password, "password", "P", "", "IMAP login password.")
 	flag.StringVarP(&wflags.Mailbox, "mailbox", "b", "INBOX", "Mailbox to monitor/idle on. Defaults to: \"INBOX\".")
 	flag.StringVarP(&wflags.Mode, "mode", "m", "", fmt.Sprintf("Mode of delivery. Valid delivery modes are: %s.", strings.Join(watch.ValidDeliveryModes(), ", ")))
-	flag.StringVar(&wflags.DeliveryUrl, "delivery_url", "", "(postback only) URL to post incoming raw email message data.")
+	flag.StringVar(&wflags.PostbackUrl, "postback-url", "", "(postback only) URL to post incoming raw email message data.")
 	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "(postback only) Urlencode RAW message data before posting.")
 	flag.BoolVarP(&printVersion, "version", "v", false, "Outputs the version information.")
 
@@ -61,7 +61,7 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 	} else {
 		if !watch.DeliveryModeValid(wflags.Mode) {
 			return wflags, newFlagsError("Unknown delivery mode: \"%s\". Must be one of: %s.", wflags.Mode, strings.Join(watch.ValidDeliveryModes(), ", "))
-		} else if wflags.Mode == "postback" && wflags.DeliveryUrl == "" {
+		} else if wflags.Mode == "postback" && wflags.PostbackUrl == "" {
 			return wflags, newFlagsError("On postback mode, delivery url must be specified.")
 		}
 	}

@@ -29,7 +29,7 @@ type Flags struct {
 	Password        string
 	Mailbox         string
 	Mode            string
-	DeliveryUrl     string
+	PostbackUrl     string
 	UrlEncodeOnPost bool
 }
 
@@ -168,7 +168,7 @@ func New(flags *Flags, handlers ...handler.MessageHandler) *Watch {
 	} else {
 		switch flags.Mode {
 		case DELIVERY_MODE_POSTBACK:
-			watch.AddHandler(handler.New(handler.POSTBACK_HANDLER, flags.DeliveryUrl, flags.UrlEncodeOnPost))
+			watch.AddHandler(handler.New(handler.POSTBACK_HANDLER, flags.PostbackUrl, flags.UrlEncodeOnPost))
 
 		case DELIVERY_MODE_LOGGER:
 			watch.AddHandler(handler.New(handler.LOGGER_HANDLER, DefaultLogger))
