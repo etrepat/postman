@@ -11,10 +11,6 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-const (
-	VERSION = "0.1.0"
-)
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -24,7 +20,7 @@ func main() {
 	}
 
 	watch := watch.New(wFlags)
-	watch.Run()
+	watch.Start()
 
 	fmt.Println("Have a nice day.")
 }
