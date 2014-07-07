@@ -39,7 +39,8 @@ func parseAndCheckFlags() (*watch.Flags, error) {
 	flag.StringVarP(&wflags.Mailbox, "mailbox", "b", "INBOX", "Mailbox to monitor/idle on. Defaults to: \"INBOX\".")
 	flag.StringVarP(&wflags.Mode, "mode", "m", "", fmt.Sprintf("Mode of delivery. Valid delivery modes are: %s.", strings.Join(watch.ValidDeliveryModes(), ", ")))
 	flag.StringVar(&wflags.PostbackUrl, "postback-url", "", "(postback only) URL to post incoming raw email message data.")
-	flag.BoolVar(&wflags.UrlEncodeOnPost, "urlencode", false, "(postback only) Urlencode RAW message data before posting.")
+	flag.BoolVar(&wflags.PostEncoded, "encode", false, "(postback only) POST messages as form data (x-form-urlencoded). See `parname` flag.")
+	flag.StringVar(&wflags.PostParamName, "parname", "message", "(postback only) POST parameter name. Defaults to: \"message\".")
 	flag.BoolVarP(&printVersion, "version", "v", false, "Outputs the version information.")
 
 	flag.Parse()

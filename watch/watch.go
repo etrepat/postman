@@ -22,15 +22,16 @@ var (
 )
 
 type Flags struct {
-	Host            string
-	Port            uint
-	Ssl             bool
-	Username        string
-	Password        string
-	Mailbox         string
-	Mode            string
-	PostbackUrl     string
-	UrlEncodeOnPost bool
+	Host          string
+	Port          uint
+	Ssl           bool
+	Username      string
+	Password      string
+	Mailbox       string
+	Mode          string
+	PostbackUrl   string
+	PostEncoded   bool
+	PostParamName string
 }
 
 type Watch struct {
@@ -168,7 +169,7 @@ func New(flags *Flags, handlers ...handler.MessageHandler) *Watch {
 	} else {
 		switch flags.Mode {
 		case DELIVERY_MODE_POSTBACK:
-			watch.AddHandler(handler.New(handler.POSTBACK_HANDLER, flags.PostbackUrl, flags.UrlEncodeOnPost))
+			watch.AddHandler(handler.New(handler.POSTBACK_HANDLER, flags.PostbackUrl, flags.PostEncoded, flags.PostParamName))
 
 		case DELIVERY_MODE_LOGGER:
 			watch.AddHandler(handler.New(handler.LOGGER_HANDLER, DefaultLogger))

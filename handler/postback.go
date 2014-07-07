@@ -9,8 +9,9 @@ import (
 )
 
 type PostBackHandler struct {
-	Url          string
-	EncodeOnPost bool
+	Url           string
+	PostEncoded   bool
+	PostParamName string
 }
 
 func (hnd *PostBackHandler) Deliver(message string) error {
@@ -20,6 +21,8 @@ func (hnd *PostBackHandler) Deliver(message string) error {
 	if err != nil {
 		return fmt.Errorf("Could not deliver: %s", err)
 	}
+
+	req.Header.Add("Content-Type", hnd.getContentType())
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -41,19 +44,37 @@ func (hnd *PostBackHandler) Deliver(message string) error {
 }
 
 func (hnd *PostBackHandler) Describe() string {
-	return fmt.Sprintf("PostbackHandler (url=%s, encode=%t)", redactedURL(hnd.Url), hnd.EncodeOnPost)
-}
-
-func (hnd *PostBackHandler) getPostBody(data string) string {
-	if hnd.EncodeOnPost == true {
-		return url.QueryEscape(data)
+	desc := "plain"
+	if hnd.PostEncoded {
+		desc = fmt.Sprintf("urlencoded[%s]", hnd.PostParamName)
 	}
 
-	return data
+	return fmt.Sprintf("PostbackHandler (url=%s, %s)", redactedURL(hnd.Url), desc)
 }
 
-func NewPostBackHandler(postUrl string, encodeOnPost bool) *PostBackHandler {
-	return &PostBackHandler{Url: postUrl, EncodeOnPost: encodeOnPost}
+func (hnd *PostBackHandler) getPostBody(raw string) string {
+	if !hnd.PostEncoded {
+		return raw
+	}
+
+	data := url.Values{}
+	data.Set(hnd.PostParamName, raw)
+	return data.Encode()
+}
+
+func (hnd *PostBackHandler) getContentType() string {
+	if !hnd.PostEncoded {
+		return "text/plain"
+	}
+
+	return "application/x-www-form-urlencoded"
+}
+
+func NewPostBackHandler(postUrl string, postEncoded bool, postParamName string) *PostBackHandler {
+	return &PostBackHandler{
+		Url:           postUrl,
+		PostEncoded:   postEncoded,
+		PostParamName: postParamName}
 }
 
 func newPostRequest(endpoint string, payload string) (*http.Request, error) {
@@ -70,7 +91,6 @@ func newPostRequest(endpoint string, payload string) (*http.Request, error) {
 
 	req.Header.Add("Host", uri.Host)
 	req.Header.Add("User-Agent", "postman-postback")
-	req.Header.Add("Content-Type", "text/plain")
 	req.Header.Add("Accept", "*/*")
 
 	return req, nil
